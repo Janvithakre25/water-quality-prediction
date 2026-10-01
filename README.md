@@ -125,11 +125,10 @@ The dataset has sensor readings from a water purification system. Target column 
 
 - This project was made as part of my learning in Machine Learning.
 - The model might not be perfect but it works well on the test data.
-- Feel free to use or modify this project.
 
 ---
 
 ## 🙋 Made by
 
-**[Your Name]**  
-Student – [Your Course / College Name]
+Janvi Thakre 
+Student - Data Science and Analytics / Ramdeobaba University
