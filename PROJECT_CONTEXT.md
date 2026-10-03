@@ -112,7 +112,7 @@ Reproducible physical sensor measurement noise was applied (`numpy.random.seed(4
 
 The calibrated dataset is saved to both `data/water_purification_dataset.csv` and the project root `water_purification_dataset.csv`.
 
-Result: Accuracy dropped from ~99.58% to **94.17%**, which falls within the target performance window (90% < Accuracy < 95%).
+Result: Accuracy dropped from ~99.58% to **94.17%**.
 
 ---
 
