@@ -297,6 +297,12 @@ def create_gradio_dashboard():
                 
                 gr.HTML(
                     """
+                    <div style="background-color: #1F2937; border: 1px solid #374151; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <h4 style="margin-top:0; color:#3B82F6;">🎯 Production Model Selection & Benchmarks</h4>
+                        <p style="margin-bottom:5px;"><b>Selected Production Model:</b> Tuned Decision Tree Classifier (<code>sklearn.tree.DecisionTreeClassifier</code>)</p>
+                        <p style="margin-bottom:5px;"><b>Original Decision Tree Baseline Accuracy:</b> 95.42%</p>
+                        <p style="margin-bottom:0;"><b>Tuned Decision Tree Test Accuracy:</b> 97.08% (Parameters: <code>max_depth=None, min_samples_leaf=4, min_samples_split=10</code>)</p>
+                    </div>
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
                         <div class="kpi-card" style="flex: 1;">
                             <div class="kpi-val">97.08%</div>
@@ -349,7 +355,30 @@ def create_gradio_dashboard():
 
     return demo
 
+def launch_dashboard_app(demo, start_port=7860, max_port=7875, host="127.0.0.1", share=False):
+    """
+    Launches Gradio app, trying start_port up to max_port automatically
+    if the initial port is occupied. Defaults to share=False (local-only).
+    """
+    for port in range(start_port, max_port + 1):
+        try:
+            print(f"[INFO] Attempting to launch Gradio dashboard on http://{host}:{port} (share={share})...")
+            res = demo.launch(
+                server_name=host,
+                server_port=port,
+                share=share,
+                prevent_thread_lock=False
+            )
+            print(f"[SUCCESS] Gradio dashboard running on http://{host}:{port}")
+            return res
+        except OSError as e:
+            err_msg = str(e).lower()
+            if "port" in err_msg or "address already in use" in err_msg or "cannot find empty port" in err_msg:
+                print(f"[WARNING] Port {port} is occupied. Retrying with port {port + 1}...")
+                continue
+            raise e
+    raise OSError(f"Could not find an available port in range {start_port}–{max_port}.")
+
 if __name__ == "__main__":
     app = create_gradio_dashboard()
-    # Share=True generates a public link accessible from anywhere!
-    app.launch(server_name="127.0.0.1", server_port=7860, share=True)
+    launch_dashboard_app(app, start_port=7860, max_port=7875, host="127.0.0.1", share=False)

@@ -283,19 +283,36 @@ pip install -r requirements.txt
 
 ### Gradio Dashboard
 
+Launch locally (starts at port `7860`, automatically checks up to `7875` if `7860` is occupied):
+
 ```bash
 python gradio_app.py
 ```
 
-Opens at `http://127.0.0.1:7860`. A public `gradio.live` URL is also printed (valid for 72 hours).
+Opens locally at `http://127.0.0.1:7860` (or `7861`, `7862`, etc. if earlier ports are busy).
+
+**Optional Launch Options:**
+
+- **Public Share URL:** Pass `--share` to generate a temporary `gradio.live` public URL:
+  ```bash
+  python gradio_app.py --share
+  ```
+- **Custom Port:** Specify a custom starting port:
+  ```bash
+  python gradio_app.py --port 7865
+  ```
 
 ### Streamlit Application
 
 ```bash
 streamlit run app.py
 ```
+or:
+```bash
+streamlit run streamlit_app.py
+```
 
-Opens at `http://localhost:8501`.
+Opens locally at `http://localhost:8501`.
 
 ---
 

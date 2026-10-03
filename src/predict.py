@@ -8,8 +8,11 @@ LABEL_MAP = {0: "Safe ✅", 1: "Moderate ⚠️", 2: "Unsafe ❌"}
 
 def load_trained_model(model_path=None):
     """Load model pickle file from provided or default path."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     paths_to_try = [
         model_path,
+        os.path.join(base_dir, "models", "model.pkl"),
+        os.path.join(base_dir, "model.pkl"),
         os.path.join("models", "model.pkl"),
         "model.pkl"
     ]

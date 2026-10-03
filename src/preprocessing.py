@@ -13,8 +13,11 @@ TARGET_COL = "water_quality"
 
 def load_data(filepath=None):
     """Load dataset from provided path or fallback paths."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     paths_to_try = [
         filepath,
+        os.path.join(base_dir, "data", "water_purification_dataset.csv"),
+        os.path.join(base_dir, "water_purification_dataset.csv"),
         os.path.join("data", "water_purification_dataset.csv"),
         "water_purification_dataset.csv"
     ]
@@ -55,8 +58,11 @@ def save_scaler(scaler, scaler_path=None):
 
 def load_scaler(scaler_path=None):
     """Load fitted scaler from disk."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     targets = [
         scaler_path,
+        os.path.join(base_dir, "models", "scaler.pkl"),
+        os.path.join(base_dir, "scaler.pkl"),
         os.path.join("models", "scaler.pkl"),
         "scaler.pkl"
     ]
