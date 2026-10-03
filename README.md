@@ -256,13 +256,13 @@ water-quality-prediction/
 
 ## Interactive Dashboard
 
-The Gradio dashboard (`dashboard/app.py`) provides a multi-tab interface:
+The Gradio dashboard (`dashboard/app.py`) provides a multi-tab interface with a large, centered title header.
 
 | Tab | Purpose |
 |---|---|
 | Single Sample Predictor | Input sensor values, get instant safety classification |
 | Batch CSV Processing | Upload a sensor dataset, download predictions |
-| Model Evaluation & KPI Metrics | View accuracy cards, confusion matrix, feature importances |
+| Model Evaluation & KPI Metrics | View KPI accuracy cards, confusion matrix, and feature importances |
 | Dataset Exploration & Charts | Explore class distributions, scatter plots, correlation heatmap |
 
 ---
@@ -366,8 +366,8 @@ The trained model files are also copied to the project root (`model.pkl`, `scale
 ### Model Evaluation Tab
 
 Displays:
-- KPI stat cards: Accuracy, Precision, Recall, F1-Score
-- Confusion matrix heatmap (YlGnBu colour scale)
+- Four KPI stat cards: Accuracy (97.08%), Weighted Precision (97.11%), Weighted Recall (97.08%), Weighted F1-Score (97.08%)
+- Confusion matrix heatmap evaluated on the 240-sample test split (YlGnBu colour scale)
 - Feature importance bar chart (sorted by relevance)
 
 ### Dataset Exploration Tab
