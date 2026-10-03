@@ -31,7 +31,7 @@ A machine learning system that classifies drinking water quality into **Safe**, 
 
 ## Overview
 
-This project applies supervised machine learning to automate water quality classification from sensor data. A Random Forest classifier is trained on 1,200 sensor readings and deployed through an interactive web dashboard built with Gradio. Users can input sensor values, upload CSV files for bulk prediction, and inspect model performance metrics — all without writing code.
+This project applies supervised machine learning to automate water quality classification from sensor data. A Random Forest classifier is trained on 1,200 sensor readings and deployed through an interactive web dashboard built with Gradio. Users can input sensor values, upload CSV files for bulk prediction, and inspect model performance metrics.
 
 ---
 
@@ -44,7 +44,7 @@ Manual water quality testing requires laboratory analysis, which introduces dela
 ## Objectives
 
 - Train a high-accuracy machine learning classifier on water sensor data.
-- Ensure the model generalises realistically (target accuracy: 90%–95%) by calibrating the dataset with physical sensor measurement variance.
+- Ensure the model generalises realistically (target accuracy: 90%-95%) by calibrating the dataset with physical sensor measurement variance.
 - Build a clean, interactive dashboard that non-technical users can operate.
 - Provide per-parameter safety assessment against WHO and EPA drinking water guidelines.
 - Support batch inference for processing large sensor datasets.
@@ -114,7 +114,7 @@ Reproducible physical measurement noise was added to each sensor channel to refl
 All noise was applied with `numpy.random.seed(42)` for full reproducibility.
 
 **Scaling:**  
-Features are normalised using `StandardScaler` (zero mean, unit variance). The scaler is fitted on the training set only and applied to the test set — no data leakage.
+Features are normalised using `StandardScaler` (zero mean, unit variance). The scaler is fitted on the training set only and applied to the test set - no data leakage.
 
 **Split:**  
 Stratified 80/20 train/test split: 960 training samples, 240 test samples.
@@ -325,7 +325,7 @@ The trained model files are also copied to the project root (`model.pkl`, `scale
 ### Batch CSV Prediction Tab
 
 **Input:** A CSV file containing the 8 sensor feature columns listed above.  
-**Output:** The same CSV with two additional columns — `Predicted_Quality_Code` and `Predicted_Quality_Status` — available for download.
+**Output:** The same CSV with two additional columns - `Predicted_Quality_Code` and `Predicted_Quality_Status` - available for download.
 
 ### Model Evaluation Tab
 
@@ -397,6 +397,6 @@ Accuracy falls within the target range of **90% < Accuracy < 95%**, reflecting r
 ## Authors
 
 **Janvi Thakre**  
-Student — Data Science & Analytics  
+Student - Data Science & Analytics  
 Ramdeobaba University, Nagpur  
 GitHub: [github.com/Janvithakre25](https://github.com/Janvithakre25)
