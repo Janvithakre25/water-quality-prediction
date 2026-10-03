@@ -220,8 +220,8 @@ def create_gradio_dashboard():
     with gr.Blocks(title="Smart Water Quality Prediction System") as demo:
         gr.HTML(
             """
-            <div class="main-title">💧 Smart Water Quality Prediction & Monitoring Dashboard</div>
-            <div class="sub-title">Real-time Machine Learning Water Safety Classification, Batch Analytics, and WHO Compliance Benchmarks</div>
+            <div style="text-align: center; font-size: 40px; font-weight: bold; margin-bottom: 8px;">💧 Smart Water Quality Prediction &amp; Monitoring Dashboard</div>
+            <div style="text-align: center; font-size: 19px; color: #9CA3AF; margin-bottom: 20px;">Real-time Machine Learning Water Safety Classification, Batch Analytics, and WHO Compliance Benchmarks</div>
             """
         )
 
