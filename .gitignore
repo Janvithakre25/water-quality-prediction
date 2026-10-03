@@ -1,19 +1,18 @@
 # Python cache & compiled files
 __pycache__/
 *.py[cod]
+*$py.class
 
-# Gradio temp/cache
-.gradio/
-
-# Data output files
+# Data outputs & temporary files
 batch_predictions_output.csv
+*.log
 
-# Local environment
+# Environment & IDE
 .venv/
-venv/
 env/
-.env
-
-# IDE
+venv/
 .vscode/
 .idea/
+
+# Gradio cache
+.gradio/
