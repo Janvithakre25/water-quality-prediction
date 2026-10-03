@@ -210,7 +210,7 @@ def render_visualization_plot(chart_type):
 # ---------------------------------------------------------
 def create_gradio_dashboard():
     css = """
-    .main-title { text-align: center; font-size: 28px; font-weight: bold; margin-bottom: 5px; }
+    .main-title { text-align: center; font-size: 40px; font-weight: bold; margin-bottom: 5px; }
     .sub-title { text-align: center; font-size: 15px; color: #9CA3AF; margin-bottom: 20px; }
     .kpi-card { background-color: #1F2937; border: 1px solid #374151; padding: 15px; border-radius: 10px; text-align: center; }
     .kpi-val { font-size: 26px; font-weight: bold; color: #3B82F6; }
@@ -297,12 +297,6 @@ def create_gradio_dashboard():
                 
                 gr.HTML(
                     """
-                    <div style="background-color: #1F2937; border: 1px solid #374151; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                        <h4 style="margin-top:0; color:#3B82F6;">🎯 Production Model Selection & Benchmarks</h4>
-                        <p style="margin-bottom:5px;"><b>Selected Production Model:</b> Tuned Decision Tree Classifier (<code>sklearn.tree.DecisionTreeClassifier</code>)</p>
-                        <p style="margin-bottom:5px;"><b>Original Decision Tree Baseline Accuracy:</b> 95.42%</p>
-                        <p style="margin-bottom:0;"><b>Tuned Decision Tree Test Accuracy:</b> 97.08% (Parameters: <code>max_depth=None, min_samples_leaf=4, min_samples_split=10</code>)</p>
-                    </div>
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
                         <div class="kpi-card" style="flex: 1;">
                             <div class="kpi-val">97.08%</div>
