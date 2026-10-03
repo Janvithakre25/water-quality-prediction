@@ -356,7 +356,6 @@ Displays:
 | Training Samples | 960 |
 | Model | Random Forest |
 
-Accuracy falls within the target range of **90% < Accuracy < 95%**, reflecting realistic generalisation performance after sensor noise calibration.
 
 ---
 
