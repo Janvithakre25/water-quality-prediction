@@ -21,7 +21,8 @@ def load_trained_model(model_path=None):
 
 def predict_single_sample(input_values, model=None, scaler=None):
     """
-    Predict water quality class for single sample input dict or array.
+    Predict water quality class for single sample input dict, dataframe, or list.
+    Preserves feature names to prevent scikit-learn UserWarnings.
     """
     if model is None:
         model = load_trained_model()
@@ -32,19 +33,22 @@ def predict_single_sample(input_values, model=None, scaler=None):
         raise FileNotFoundError("Model or Scaler binary files not found.")
 
     if isinstance(input_values, dict):
-        input_array = np.array([[input_values[col] for col in FEATURE_COLS]])
+        input_df = pd.DataFrame([[input_values[col] for col in FEATURE_COLS]], columns=FEATURE_COLS)
     elif isinstance(input_values, (list, np.ndarray)):
-        input_array = np.array(input_values).reshape(1, -1)
+        arr = np.array(input_values).reshape(1, -1)
+        input_df = pd.DataFrame(arr, columns=FEATURE_COLS)
+    elif isinstance(input_values, pd.DataFrame):
+        input_df = input_values[FEATURE_COLS]
     else:
         raise ValueError("Invalid input format for single sample prediction.")
 
     # Predict
-    pred_code = int(model.predict(input_array)[0])
+    pred_code = int(model.predict(input_df)[0])
     status_label = LABEL_MAP.get(pred_code, "Unknown")
     
     probabilities = {}
     if hasattr(model, "predict_proba"):
-        probs = model.predict_proba(input_array)[0]
+        probs = model.predict_proba(input_df)[0]
         probabilities = {
             "Safe (0)": float(probs[0]),
             "Moderate (1)": float(probs[1]),
