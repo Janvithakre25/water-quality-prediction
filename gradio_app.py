@@ -1,235 +1,262 @@
-import gradio as gr
-import pandas as pd
-import numpy as np
-import pickle
 import os
+import pickle
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import classification_report, confusion_matrix
-from sklearn.model_selection import train_test_split
+import gradio as gr
 
-# -----------------------------
-# HELPER FUNCTIONS & ARTIFACTS
-# -----------------------------
-def load_model_and_scaler():
-    if not os.path.exists("model.pkl") or not os.path.exists("scaler.pkl"):
-        return None, None
-    with open("model.pkl", "rb") as f:
+# ---------------------------------------------------------
+# LOAD MODEL & SCALER
+# ---------------------------------------------------------
+MODEL_PATH = "model.pkl"
+SCALER_PATH = "scaler.pkl"
+DATASET_PATH = "water_purification_dataset.csv"
+
+model = None
+scaler = None
+df_data = None
+
+if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
+    with open(MODEL_PATH, "rb") as f:
         model = pickle.load(f)
-    with open("scaler.pkl", "rb") as f:
+    with open(SCALER_PATH, "rb") as f:
         scaler = pickle.load(f)
-    return model, scaler
 
-model, scaler = load_model_and_scaler()
+if os.path.exists(DATASET_PATH):
+    df_data = pd.read_csv(DATASET_PATH)
 
-def load_dataset():
-    if os.path.exists("water_purification_dataset.csv"):
-        return pd.read_csv("water_purification_dataset.csv")
-    return None
+LABEL_MAP = {0: "Safe ✅", 1: "Moderate ⚠️", 2: "Unsafe ❌"}
+COLOR_MAP = {0: "#2ea44f", 1: "#d97706", 2: "#dc2626"}
 
-df_data = load_dataset()
-
-# Status Mappings
-QUALITY_MAP = {
-    0: ("SAFE ✅", "green", "Water parameters are within optimal safety ranges. Safe for consumption."),
-    1: ("MODERATE ⚠️", "orange", "Water parameters show moderate deviation. Pre-treatment or filter check advised."),
-    2: ("UNSAFE ❌", "red", "Water parameters exceed safe safety standards! Immediate servicing required.")
-}
-
-# -----------------------------
-# GRADIO TAB FUNCTIONS
-# -----------------------------
-def predict_single(pH, turbidity, tds, flow, pressure, temp, usage, days):
+# ---------------------------------------------------------
+# PREDICTION FUNCTION
+# ---------------------------------------------------------
+def predict_water_quality(pH, turbidity, tds, flow_rate, pressure, temp, usage, days):
     if model is None or scaler is None:
-        return "<h3 style='color:red;'>Model or Scaler not loaded! Run model_training.py first.</h3>", {}, ""
-        
-    input_data = np.array([[pH, turbidity, tds, flow, pressure, temp, usage, days]])
-    input_scaled = scaler.transform(input_data)
+        return "⚠️ Error: model.pkl or scaler.pkl not loaded.", "", ""
+
+    input_feats = np.array([[pH, turbidity, tds, flow_rate, pressure, temp, usage, days]])
+    scaled_feats = scaler.transform(input_feats)
     
-    pred = model.predict(input_scaled)[0]
-    label_text, color, desc = QUALITY_MAP[pred]
+    pred_class = model.predict(scaled_feats)[0]
+    status_str = LABEL_MAP.get(pred_class, "Unknown")
     
-    # Class Probabilities if supported
-    probs = {}
+    # Probabilities if model supports predict_proba
+    probs_dict = {}
     if hasattr(model, "predict_proba"):
-        probabilities = model.predict_proba(input_scaled)[0]
-        probs = {
-            "Safe (0)": float(probabilities[0]),
-            "Moderate (1)": float(probabilities[1]),
-            "Unsafe (2)": float(probabilities[2])
+        probs = model.predict_proba(scaled_feats)[0]
+        probs_dict = {
+            "Safe (0)": float(probs[0]),
+            "Moderate (1)": float(probs[1]),
+            "Unsafe (2)": float(probs[2])
         }
-    else:
-        probs = {label_text: 1.0}
-        
-    # Parameter threshold checks
-    notes = []
+
+    # Parameter safety recommendations
+    recommendations = []
     if not (6.5 <= pH <= 8.5):
-        notes.append(f"⚠️ **pH ({pH})**: Outside WHO optimal range (6.5 - 8.5).")
+        recommendations.append(f"• **pH ({pH})**: Outside standard WHO range (6.5 - 8.5). Consider adjusting chemical balance.")
     else:
-        notes.append(f"✅ **pH ({pH})**: Optimal.")
-        
+        recommendations.append(f"• **pH ({pH})**: Within safe optimal range (6.5 - 8.5).")
+
     if turbidity > 5.0:
-        notes.append(f"⚠️ **Turbidity ({turbidity} NTU)**: High turbidity detected (> 5.0 NTU).")
+        recommendations.append(f"• **Turbidity ({turbidity} NTU)**: Exceeds safe limit (5.0 NTU). High cloudiness detected; filter change recommended.")
+    elif turbidity > 1.0:
+        recommendations.append(f"• **Turbidity ({turbidity} NTU)**: Acceptable, but above ideal <1.0 NTU.")
     else:
-        notes.append(f"✅ **Turbidity ({turbidity} NTU)**: Normal.")
-        
+        recommendations.append(f"• **Turbidity ({turbidity} NTU)**: Excellent clarity.")
+
     if tds > 500:
-        notes.append(f"⚠️ **TDS ({tds} ppm)**: High total dissolved solids (> 500 ppm).")
+        recommendations.append(f"• **TDS ({tds} ppm)**: High total dissolved solids (>500 ppm). Consider RO membrane service.")
+    elif tds > 300:
+        recommendations.append(f"• **TDS ({tds} ppm)**: Fair level (300-500 ppm).")
     else:
-        notes.append(f"✅ **TDS ({tds} ppm)**: Acceptable.")
-        
+        recommendations.append(f"• **TDS ({tds} ppm)**: Good mineral/dissolved solid level.")
+
     if days > 90:
-        notes.append(f"🔧 **Filter Age ({days} days)**: Filter replacement check recommended (> 90 days).")
-        
-    assessment_html = f"""
-    <div style='background-color: rgba(240, 240, 240, 0.5); padding: 15px; border-radius: 8px; border-left: 6px solid {color};'>
-        <h2 style='color: {color}; margin-top: 0;'>Water Quality: {label_text}</h2>
-        <p><b>Assessment Summary:</b> {desc}</p>
-    </div>
-    """
-    
-    notes_markdown = "### 📋 Rule-Based Health Checklist:\n" + "\n".join(notes)
-    
-    return assessment_html, probs, notes_markdown
+        recommendations.append(f"• **Filter Usage ({days} days)**: Filter has been in use for over 90 days. Maintenance recommended.")
 
-def batch_predict(file_obj):
-    if model is None or scaler is None:
-        return None, "Model/Scaler missing.", None
+    rec_markdown = "### 📋 Parameter & Safety Assessment:\n" + "\n".join(recommendations)
+
+    return status_str, probs_dict, rec_markdown
+
+# ---------------------------------------------------------
+# BATCH PREDICTION FUNCTION
+# ---------------------------------------------------------
+def process_batch_csv(file_obj):
     if file_obj is None:
-        return None, "Please upload a CSV file.", None
-        
+        return None, "Please upload a valid CSV file."
+    
+    if model is None or scaler is None:
+        return None, "Model or Scaler not loaded."
+
     try:
-        df_upload = pd.read_csv(file_obj.name)
-        feature_cols = ["pH", "turbidity_NTU", "TDS_ppm", "flow_rate_L_min",
-                        "pressure_bar", "temperature_C", "usage_L_per_day", "days_since_filter_change"]
-                        
-        missing_cols = [c for c in feature_cols if c not in df_upload.columns]
-        if missing_cols:
-            return None, f"Error: CSV missing required columns: {missing_cols}", None
-            
-        X = df_upload[feature_cols]
-        X_scaled = scaler.transform(X)
-        predictions = model.predict(X_scaled)
+        batch_df = pd.read_csv(file_obj.name)
+        required_cols = [
+            "pH", "turbidity_NTU", "TDS_ppm", "flow_rate_L_min",
+            "pressure_bar", "temperature_C", "usage_L_per_day", "days_since_filter_change"
+        ]
         
-        df_upload["Predicted_Quality_Code"] = predictions
-        df_upload["Predicted_Quality_Label"] = df_upload["Predicted_Quality_Code"].map({0: "SAFE", 1: "MODERATE", 2: "UNSAFE"})
-        
-        # Output plot
-        fig, ax = plt.subplots(figsize=(6, 3))
-        sns.countplot(x="Predicted_Quality_Label", data=df_upload, palette="viridis", ax=ax)
-        ax.set_title("Batch Prediction Results Summary")
-        
-        # Save temp CSV output
+        missing = [c for c in required_cols if c not in batch_df.columns]
+        if missing:
+            return None, f"Missing required columns in CSV: {missing}"
+
+        X_batch = batch_df[required_cols]
+        X_scaled = scaler.transform(X_batch)
+        preds = model.predict(X_scaled)
+
+        batch_df["Predicted_Quality_Code"] = preds
+        batch_df["Predicted_Quality_Status"] = [LABEL_MAP.get(p, "Unknown") for p in preds]
+
         out_path = "batch_predictions_output.csv"
-        df_upload.to_csv(out_path, index=False)
-        
-        return df_upload, f"Successfully processed {len(df_upload)} samples!", fig
+        batch_df.to_csv(out_path, index=False)
+
+        return batch_df, out_path
     except Exception as e:
-        return None, f"Failed to process CSV: {str(e)}", None
+        return None, f"Error processing file: {str(e)}"
 
-def get_eda_plots():
+# ---------------------------------------------------------
+# VISUALIZATION FUNCTION
+# ---------------------------------------------------------
+def generate_dataset_chart(chart_type):
     if df_data is None:
-        return None, None
-        
-    # Plot 1: Class distribution
-    fig1, ax1 = plt.subplots(figsize=(6, 4))
-    sns.countplot(x="water_quality", data=df_data, palette="Set2", ax=ax1)
-    ax1.set_xticklabels(["Safe (0)", "Moderate (1)", "Unsafe (2)"])
-    ax1.set_title("Target Class Distribution")
-    
-    # Plot 2: Heatmap correlation
-    fig2, ax2 = plt.subplots(figsize=(7, 5))
-    sns.heatmap(df_data.corr(numeric_only=True), annot=True, fmt=".2f", cmap="coolwarm", ax=ax2)
-    ax2.set_title("Feature Correlation Heatmap")
-    
-    return fig1, fig2
+        fig, ax = plt.subplots(figsize=(6, 4))
+        ax.text(0.5, 0.5, "water_purification_dataset.csv not found", ha='center', va='center')
+        return fig
 
-# -----------------------------
-# BUILD GRADIO DASHBOARD
-# -----------------------------
-theme = gr.themes.Soft(
+    fig, ax = plt.subplots(figsize=(8, 5))
+    sns.set_theme(style="whitegrid")
+
+    if chart_type == "Water Quality Distribution":
+        sns.countplot(data=df_data, x="water_quality", palette=["#2ea44f", "#d97706", "#dc2626"], ax=ax)
+        ax.set_xticklabels(["Safe (0)", "Moderate (1)", "Unsafe (2)"])
+        ax.set_title("Distribution of Water Quality Classes", fontsize=14, fontweight='bold')
+        ax.set_xlabel("Water Quality Status")
+        ax.set_ylabel("Count")
+
+    elif chart_type == "TDS vs Turbidity Scatter":
+        sns.scatterplot(
+            data=df_data, x="TDS_ppm", y="turbidity_NTU",
+            hue="water_quality", palette=["#2ea44f", "#d97706", "#dc2626"],
+            alpha=0.8, ax=ax
+        )
+        ax.set_title("TDS (ppm) vs Turbidity (NTU) by Quality", fontsize=14, fontweight='bold')
+
+    elif chart_type == "Correlation Heatmap":
+        numeric_df = df_data.select_dtypes(include=[np.number])
+        sns.heatmap(numeric_df.corr(), annot=True, fmt=".2f", cmap="Blues", ax=ax)
+        ax.set_title("Dataset Correlation Heatmap", fontsize=14, fontweight='bold')
+
+    elif chart_type == "pH Distribution by Quality":
+        sns.boxplot(data=df_data, x="water_quality", y="pH", palette=["#2ea44f", "#d97706", "#dc2626"], ax=ax)
+        ax.set_xticklabels(["Safe (0)", "Moderate (1)", "Unsafe (2)"])
+        ax.set_title("pH Range across Water Quality Classes", fontsize=14, fontweight='bold')
+
+    plt.tight_layout()
+    return fig
+
+# ---------------------------------------------------------
+# GRADIO INTERFACE BUILD
+# ---------------------------------------------------------
+custom_theme = gr.themes.Soft(
     primary_hue="blue",
     secondary_hue="cyan"
 )
 
-with gr.Blocks(theme=theme, title="💧 Smart Water Quality Dashboard") as demo:
-    gr.Markdown("""
-    # 💧 Smart Water Purification System - Interactive Dashboard
-    ### AI-Powered Multi-Sensor Telemetry & Water Safety Classifier
-    """)
-    
+with gr.Blocks(theme=custom_theme, title="💧 Smart Water Quality Prediction Dashboard") as demo:
+    gr.Markdown(
+        """
+        # 💧 Smart Water Purification System - Interactive Dashboard
+        Predict water safety status, evaluate WHO/EPA quality guidelines, conduct batch inference, and analyze dataset metrics.
+        """
+    )
+
     with gr.Tabs():
         # TAB 1: Single Prediction
-        with gr.TabItem("🔍 Single Sample Prediction"):
-            gr.Markdown("#### Adjust telemetry parameters to get real-time water quality predictions.")
+        with gr.TabItem("🔮 Predict Water Quality"):
             with gr.Row():
-                with gr.Column():
-                    pH = gr.Slider(6.0, 9.0, value=7.2, step=0.1, label="pH Level")
-                    turbidity = gr.Slider(0.1, 10.0, value=2.5, step=0.1, label="Turbidity (NTU)")
-                    tds = gr.Slider(100, 1000, value=350, step=10, label="TDS (ppm)")
-                    flow = gr.Slider(0.5, 2.0, value=1.2, step=0.05, label="Flow Rate (L/min)")
-                    pressure = gr.Slider(1.0, 5.0, value=2.8, step=0.1, label="Pressure (bar)")
-                    temp = gr.Slider(15.0, 35.0, value=24.0, step=0.5, label="Temperature (°C)")
-                    usage = gr.Slider(5, 50, value=25, step=1, label="Daily Usage (L/day)")
-                    days = gr.Slider(1, 180, value=45, step=1, label="Days Since Filter Change")
+                with gr.Column(scale=1):
+                    gr.Markdown("### 🎛️ Sensor Inputs")
+                    pH = gr.Slider(6.0, 9.0, value=7.2, step=0.01, label="pH Level (6.0 - 9.0)")
+                    turbidity = gr.Slider(0.1, 10.0, value=2.0, step=0.1, label="Turbidity (NTU)")
+                    tds = gr.Slider(100, 1000, value=300, step=1, label="TDS (ppm)")
+                    flow_rate = gr.Slider(0.5, 2.0, value=1.0, step=0.01, label="Flow Rate (L/min)")
+                    pressure = gr.Slider(1.0, 5.0, value=2.5, step=0.1, label="Pressure (bar)")
+                    temp = gr.Slider(15.0, 35.0, value=25.0, step=0.5, label="Temperature (°C)")
+                    usage = gr.Slider(5, 50, value=20, step=1, label="Usage (L/day)")
+                    days = gr.Slider(1, 180, value=60, step=1, label="Days Since Filter Change")
                     
-                    predict_btn = gr.Button("🚀 Classify Water Quality", variant="primary")
-                    
-                with gr.Column():
-                    result_html = gr.HTML(label="Result")
-                    probs_label = gr.Label(label="Class Probability Breakdown")
-                    checklist_md = gr.Markdown()
-                    
+                    predict_btn = gr.Button("⚡ Predict Water Quality", variant="primary")
+
+                with gr.Column(scale=1):
+                    gr.Markdown("### 📊 Prediction Results")
+                    status_output = gr.Textbox(label="Water Quality Status", interactive=False)
+                    probs_output = gr.Label(label="Class Probabilities")
+                    rec_output = gr.Markdown("### Assessment details will appear here after prediction.")
+
             predict_btn.click(
-                fn=predict_single,
-                inputs=[pH, turbidity, tds, flow, pressure, temp, usage, days],
-                outputs=[result_html, probs_label, checklist_md]
+                fn=predict_water_quality,
+                inputs=[pH, turbidity, tds, flow_rate, pressure, temp, usage, days],
+                outputs=[status_output, probs_output, rec_output]
             )
 
-        # TAB 2: Batch CSV Upload
-        with gr.TabItem("📂 Batch CSV Prediction"):
-            gr.Markdown("#### Upload a CSV file containing telemetry readings to generate predictions for all rows.")
-            file_input = gr.File(label="Upload Water Telemetry CSV", file_types=[".csv"])
-            batch_btn = gr.Button("⚡ Process Batch Predictions", variant="primary")
-            
-            status_text = gr.Textbox(label="Batch Process Status")
+        # TAB 2: Batch CSV Inference
+        with gr.TabItem("📁 Batch Prediction (CSV)"):
+            gr.Markdown("### Upload a CSV file containing sensor features to generate batch predictions.")
             with gr.Row():
-                output_table = gr.DataFrame(label="Prediction Results Preview")
-                output_plot = gr.Plot(label="Batch Quality Distribution")
-                
+                csv_input = gr.File(label="Upload Water Quality CSV Data", file_types=[".csv"])
+                with gr.Column():
+                    batch_btn = gr.Button("🚀 Run Batch Prediction", variant="primary")
+                    status_text = gr.Textbox(label="Batch Status", interactive=False)
+
+            batch_dataframe = gr.Dataframe(label="Batch Results Preview")
+            download_file = gr.File(label="Download Predictions CSV")
+
             batch_btn.click(
-                fn=batch_predict,
-                inputs=[file_input],
-                outputs=[output_table, status_text, output_plot]
+                fn=process_batch_csv,
+                inputs=[csv_input],
+                outputs=[batch_dataframe, download_file]
             )
 
-        # TAB 3: Exploratory Data Analysis
-        with gr.TabItem("📊 Dataset Exploratory Analysis"):
-            gr.Markdown("#### View exploratory data distribution graphs and feature correlations.")
-            eda_btn = gr.Button("🔄 Load / Refresh EDA Plots")
-            with gr.Row():
-                plot1 = gr.Plot(label="Target Class Breakdown")
-                plot2 = gr.Plot(label="Feature Correlation Matrix")
-                
-            eda_btn.click(fn=get_eda_plots, inputs=[], outputs=[plot1, plot2])
+        # TAB 3: Analytics & Visualizations
+        with gr.TabItem("📈 Dataset Analytics"):
+            gr.Markdown("### Explore dataset trends, correlations, and parameter distributions.")
+            chart_selector = gr.Dropdown(
+                choices=[
+                    "Water Quality Distribution",
+                    "TDS vs Turbidity Scatter",
+                    "Correlation Heatmap",
+                    "pH Distribution by Quality"
+                ],
+                value="Water Quality Distribution",
+                label="Select Visualization Plot"
+            )
+            plot_output = gr.Plot(label="Interactive Chart")
 
-        # TAB 4: Model Info & Overview
-        with gr.TabItem("ℹ️ Model Architecture & Info"):
-            gr.Markdown("""
-            ### 🤖 Machine Learning Model Architecture
-            - **Algorithm**: Decision Tree Classifier (Optimized via GridSearchCV)
-            - **Scaler**: `StandardScaler` (Z-score normalization)
-            - **Features Used (8)**: `pH`, `turbidity_NTU`, `TDS_ppm`, `flow_rate_L_min`, `pressure_bar`, `temperature_C`, `usage_L_per_day`, `days_since_filter_change`
-            - **Target Classes**:
-              - `0`: SAFE ✅ (Optimal drinking water conditions)
-              - `1`: MODERATE ⚠️ (Acceptable but maintenance/treatment advised)
-              - `2`: UNSAFE ❌ (Exceeds contamination thresholds)
-            
-            #### 🛠️ How to launch local web servers:
-            - **Gradio Dashboard**: `python gradio_app.py`
-            - **Streamlit Web App**: `streamlit run app.py`
-            - **Train Model**: `python model_training.py`
-            """)
+            chart_selector.change(
+                fn=generate_dataset_chart,
+                inputs=[chart_selector],
+                outputs=[plot_output]
+            )
+
+        # TAB 4: WHO Standards Reference
+        with gr.TabItem("📘 Water Quality Benchmarks"):
+            gr.Markdown(
+                """
+                ### 🌊 Recommended Water Quality Limits (WHO / EPA)
+
+                | Parameter | Safe Range / Limit | Importance & Impact |
+                |---|---|---|
+                | **pH** | 6.5 – 8.5 | Indicates acidity/alkalinity. Values < 6.5 are corrosive; > 8.5 scale-forming. |
+                | **Turbidity** | < 1.0 NTU (Max 5.0) | Measures cloudiness. High turbidity harbors pathogens and clogs filters. |
+                | **TDS** | < 300 - 500 ppm | Total Dissolved Solids. High TDS affects taste and filter lifespan. |
+                | **Flow Rate** | 0.8 – 1.8 L/min | Optimal membrane filtration velocity. |
+                | **Pressure** | 1.5 – 4.5 bar | Required RO membrane operating pressure. |
+                | **Filter Replacement** | Every 90–120 days | Regular change prevents bacterial growth and membrane damage. |
+                """
+            )
 
 if __name__ == "__main__":
     demo.launch(server_name="127.0.0.1", server_port=7860, share=False)

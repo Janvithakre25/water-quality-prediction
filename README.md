@@ -1,132 +1,111 @@
-# 💧 Smart Water Purification & Quality Prediction System
+# 💧 Smart Water Purification System & Quality Prediction Dashboard
 
-[![Python](https://img.shields.io/badge/Python-3.8%2B-blue.svg)](https://www.python.org/)
-[![Streamlit](https://img.shields.io/badge/Streamlit-1.28%2B-FF4B4B.svg)](https://streamlit.io/)
-[![Gradio](https://img.shields.io/badge/Gradio-4.0%2B-orange.svg)](https://gradio.app/)
-[![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3%2B-F7931E.svg)](https://scikit-learn.org/)
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-v1.0%2B-orange.svg)](https://scikit-learn.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-App-red.svg)](https://streamlit.io/)
+[![Gradio](https://img.shields.io/badge/Gradio-Dashboard-FF5500.svg)](https://gradio.app/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An end-to-end Machine Learning solution for real-time water quality classification and purification monitoring. The system uses multi-sensor telemetry data (pH, turbidity, TDS, temperature, flow rate, pressure, daily usage, filter age) to classify water samples as **SAFE ✅**, **MODERATE ⚠️**, or **UNSAFE ❌**.
-
-It comes equipped with **two interactive web applications** (**Streamlit** & **Gradio**), automated model training scripts, and batch processing capabilities.
-
----
-
-## ✨ Features
-
-- 🔍 **Interactive Real-Time Prediction**: Instant classification based on 8 sensor inputs with color-coded status badges and rule-based safety checks.
-- 📂 **Batch CSV Processing**: Upload CSV files containing sensor logs for bulk prediction and automated export.
-- 📊 **Exploratory Data Analysis (EDA)**: Interactive class distributions, correlation heatmaps, and parameter scatter plots.
-- 🛡️ **WHO/EPA Safety Thresholds**: Compare pH, Turbidity, and TDS values directly against standard drinking water guidelines.
-- ⚡ **Dual UI Options**: Use either **Streamlit** for a web dashboard or **Gradio** for flexible multi-tab analytics.
-- 🤖 **Automated Model Pipeline**: Run `model_training.py` to evaluate multiple algorithms, tune hyperparameters via `GridSearchCV`, and output model artifacts.
+An end-to-end Machine Learning project that classifies water quality (**Safe ✅**, **Moderate ⚠️**, **Unsafe ❌**) based on IoT sensor data and operational parameters. Features both a **Streamlit Web App** and an interactive **Gradio Dashboard** with single & batch CSV inference capabilities.
 
 ---
 
-## 📁 Project Structure
+## 📌 Features
+
+- 🔮 **Water Quality Classification**: Predicts water safety using 8 real-time sensor parameters.
+- ⚡ **Interactive Gradio Dashboard (`gradio_app.py`)**: Multi-tab interface featuring real-time input sliders, probability visualizer, and WHO safety parameter benchmarks.
+- 📁 **Batch Inference**: Upload CSV files containing sensor readings and download predictions with safety labels.
+- 📊 **Streamlit Web Application (`app.py`)**: Includes interactive slider predictions, dataset exploratory data analysis (EDA), and confusion matrix metrics.
+- 🤖 **Automated ML Training & Tuning (`model_training.py`)**: Evaluates multiple classifiers (Logistic Regression, Decision Tree, Random Forest, AdaBoost, Gradient Boosting) with 5-fold cross-validation and hyperparameter optimization via `GridSearchCV`.
+
+---
+
+## 📁 Repository Structure
 
 ```
 water-quality-prediction/
 ├── app.py                          # Streamlit Web Application
-├── gradio_app.py                   # Gradio Interactive Dashboard
-├── model_training.py               # Standalone ML training & evaluation script
-├── ML_project.ipynb                # Jupyter notebook with EDA & experimental modeling
-├── water_purification_dataset.csv  # Water sensor dataset (1,200 samples)
-├── model.pkl                       # Saved trained DecisionTreeClassifier model
-├── scaler.pkl                      # Saved fitted StandardScaler instance
-├── requirements.txt                # Dependencies list
-├── PROJECT_CONTEXT.md              # AI Context & technical specification file
+├── gradio_app.py                   # Interactive Gradio Dashboard (Single & Batch Prediction)
+├── model_training.py               # Machine learning training, tuning, and evaluation script
+├── water_purification_dataset.csv  # Sensor readings dataset
+├── model.pkl                       # Trained machine learning model
+├── scaler.pkl                      # Fitted StandardScaler instance
+├── requirements.txt                # Python package dependencies
+├── PROJECT_CONTEXT.md              # Technical project context & dataset specifications
+├── CONTEXT.md                      # Context reference file
 └── README.md                       # Documentation & guide
 ```
 
 ---
 
-## 📊 Dataset Overview
+## 📊 Dataset & Sensor Features
 
-The dataset contains **1,200 water sensor records** across 8 physical and operational input parameters:
+The model consumes 8 sensor parameters to predict water quality:
 
-| Parameter | Type | Range | Description |
+| Parameter | Unit | WHO / EPA Recommended Range | Description |
 |---|---|---|---|
-| **pH** | Float | 6.0 – 9.0 | Acidity/alkalinity level |
-| **Turbidity (NTU)** | Float | 0.1 – 10.0 NTU | Cloudiness/clarity measure |
-| **TDS (ppm)** | Integer | 100 – 1000 ppm | Total Dissolved Solids |
-| **Flow Rate (L/min)** | Float | 0.5 – 2.0 L/min | Fluid flow velocity |
-| **Pressure (bar)** | Float | 1.0 – 5.0 bar | Operational line pressure |
-| **Temperature (°C)** | Float | 15.0 – 35.0 °C | Water temperature |
-| **Usage (L/day)** | Integer | 5 – 50 L/day | Daily volume usage |
-| **Days Since Filter Change** | Integer | 1 – 180 days | Filter element operational age |
-
-### Target Classes (`water_quality`):
-- `0` = **SAFE ✅**: Optimal parameters; safe for drinking.
-- `1` = **MODERATE ⚠️**: Minor parameter deviations; check filter or pre-treat.
-- `2` = **UNSAFE ❌**: Exceeds contamination threshold; immediate maintenance required.
+| **pH** | Level | 6.5 – 8.5 | Acidity / Alkalinity level |
+| **Turbidity** | NTU | < 1.0 (Max 5.0) | Water cloudiness & suspended particles |
+| **TDS** | ppm | < 300 – 500 ppm | Total Dissolved Solids |
+| **Flow Rate** | L/min | 0.8 – 1.8 L/min | System filtration flow speed |
+| **Pressure** | bar | 1.5 – 4.5 bar | System operating pressure |
+| **Temperature** | °C | 15.0 – 30.0 °C | Water temperature |
+| **Daily Usage** | L/day | 10 – 40 L/day | Daily consumption volume |
+| **Days Since Filter Change** | Days | < 90 – 120 Days | Operational filter usage days |
 
 ---
 
-## 🤖 Machine Learning Performance
+## 🤖 Machine Learning Workflow & Performance
 
-Four classification algorithms were evaluated using 5-Fold Cross Validation:
+Models evaluated during training:
+- **Decision Tree Classifier** (~99.58% accuracy)
+- **Gradient Boosting Classifier** (~99.58% accuracy)
+- **Random Forest Classifier** (~98.75% accuracy)
+- **Logistic Regression** (~72.08% accuracy)
+- **AdaBoost Classifier** (~68.33% accuracy)
 
-| Model | Test Accuracy | 5-Fold CV Score |
-|---|---|---|
-| **Logistic Regression** | ~67.92% | ~67.50% |
-| **AdaBoost** | ~68.75% | ~68.12% |
-| **Random Forest** | ~99.58% | ~99.58% |
-| **Decision Tree (Tuned)** | **99.58%** | **99.58%** |
-
-*The Decision Tree model achieved the highest accuracy and was selected as the final production model.*
+The optimal model is hyperparameter-tuned, validated via 5-fold cross-validation, and serialized as `model.pkl` along with `scaler.pkl`.
 
 ---
 
-## 🚀 Quick Start & Installation
+## 🚀 Quickstart & Setup
 
-### Step 1: Clone the Repository
+### 1. Clone the Repository
 ```bash
 git clone https://github.com/Janvithakre25/water-quality-prediction.git
 cd water-quality-prediction
 ```
 
-### Step 2: Install Dependencies
+### 2. Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 3: Train Model & Generate Artifacts (Optional)
+### 3. Train / Re-train the Machine Learning Model
 ```bash
 python model_training.py
 ```
-*(This creates `model.pkl` and `scaler.pkl` automatically)*
 
 ---
 
-## 🖥️ Launching Dashboards
+## 🖥️ Running the User Interfaces
 
 ### Option A: Launch Gradio Interactive Dashboard
 ```bash
 python gradio_app.py
 ```
-*Access the Gradio web UI at `http://127.0.0.1:7860`*
+Open [http://127.0.0.1:7860](http://127.0.0.1:7860) in your web browser.
 
-### Option B: Launch Streamlit App
+### Option B: Launch Streamlit Web Application
 ```bash
 streamlit run app.py
 ```
-*Access the Streamlit web UI at `http://localhost:8501`*
+Open [http://localhost:8501](http://localhost:8501) in your web browser.
 
 ---
 
-## 📝 Features & Dashboard Comparison
-
-| Feature | Gradio App (`gradio_app.py`) | Streamlit App (`app.py`) |
-|---|---|---|
-| **Single Sample Telemetry** | Sliders + Probability Breakdown | Sliders + Metric Badges |
-| **Batch CSV Prediction** | ✅ Upload CSV & Export CSV | ❌ |
-| **EDA Visualizations** | Target Distribution & Heatmap | Countplots & Scatterplots |
-| **Safe Limit Checkers** | Integrated Rule Checklist | Dedicated Tab |
-
----
-
-## 🙋 Made By
+## 🙋 Author & Contact
 
 **Janvi Thakre**  
-*Data Science & Analytics / Ramdeobaba University*  
-[GitHub Profile](https://github.com/Janvithakre25)
+Student — Data Science & Analytics, Ramdeobaba University  
+GitHub: [@Janvithakre25](https://github.com/Janvithakre25)

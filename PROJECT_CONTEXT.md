@@ -1,71 +1,95 @@
-# 💧 Smart Water Purification System - Project Context
+# 💧 Project Context: Smart Water Purification & Quality Prediction System
 
 ## 📌 Project Overview
-The **Smart Water Purification System** is an AI-driven decision support system designed to evaluate and predict water safety levels (**SAFE ✅**, **MODERATE ⚠️**, or **UNSAFE ❌**) using real-time telemetry inputs from 8 physical and chemical water quality sensors. 
-
-It provides dual interactive web dashboards built with **Streamlit** and **Gradio**, permitting single-sample assessment, batch CSV predictions, exploratory data analysis, and rule-based safety threshold comparisons against standard guidelines (WHO/EPA).
+The **Smart Water Purification System** is an end-to-end machine learning project designed to evaluate water safety and predict water quality categories based on IoT sensor inputs. The system classifies water quality into three distinct levels (**Safe**, **Moderate**, **Unsafe**) and provides actionable insights for filtration and system maintenance.
 
 ---
 
-## 📁 Repository Structure & File Map
+## 🏗️ System Architecture & File Structure
 
 ```
 water-quality-prediction/
-├── app.py                          # Streamlit web application dashboard
-├── gradio_app.py                   # Gradio interactive multi-tab dashboard
-├── model_training.py               # ML training pipeline script (data scaling, CV, model saving)
-├── ML_project.ipynb                # Jupyter Notebook for exploratory research & model experiments
-├── water_purification_dataset.csv  # Primary dataset (1,200 samples, 8 features + targets)
-├── model.pkl                       # Serialized trained DecisionTreeClassifier artifact
-├── scaler.pkl                      # Serialized fitted StandardScaler artifact
+│
+├── PROJECT_CONTEXT.md              # Detailed technical context, architecture, & parameters
+├── README.md                       # Comprehensive user guide, setup instructions, & overview
 ├── requirements.txt                # Python package dependencies
-├── PROJECT_CONTEXT.md              # Project context file for AI models & developers
-└── README.md                       # Comprehensive user guide & setup documentation
+├── water_purification_dataset.csv  # Raw sensor readings & ground truth dataset
+│
+├── model_training.py               # Machine learning pipeline (EDA, training, tuning, saving)
+├── model.pkl                       # Serialized trained machine learning model (Random Forest / Best classifier)
+├── scaler.pkl                      # Serialized StandardScaler instance
+│
+├── app.py                          # Streamlit web application dashboard
+└── gradio_app.py                   # Interactive Gradio dashboard & batch prediction UI
 ```
 
 ---
 
-## 📊 Dataset Schema & Features
+## 📊 Dataset Features & Specifications
 
-- **Total Records**: 1,200 rows (0 missing values)
-- **Input Features (8 numeric variables)**:
-  1. `pH` (Float: 6.0 – 9.0): Acidity / alkalinity measure.
-  2. `turbidity_NTU` (Float: 0.1 – 10.0 NTU): Water clarity indicator.
-  3. `TDS_ppm` (Integer: 100 – 1000 ppm): Total Dissolved Solids.
-  4. `flow_rate_L_min` (Float: 0.5 – 2.0 L/min): System flow velocity.
-  5. `pressure_bar` (Float: 1.0 – 5.0 bar): Operational system pressure.
-  6. `temperature_C` (Float: 15.0 – 35.0 °C): Water temperature.
-  7. `usage_L_per_day` (Integer: 5 – 50 L/day): Daily system volumetric throughput.
-  8. `days_since_filter_change` (Integer: 1 – 180 days): Filter element age.
+The dataset `water_purification_dataset.csv` consists of 8 sensor features and 3 output targets:
 
-- **Target Variable**: `water_quality` (Multiclass integer):
-  - `0` = SAFE (Optimal quality, safe for consumption)
-  - `1` = MODERATE (Pre-treatment recommended)
-  - `2` = UNSAFE (Critical contamination thresholds exceeded)
+### 1. Input Features (Predictors)
+| Feature Name | Type | Recommended Safe Limits (WHO / EPA) | Description |
+|---|---|---|---|
+| `pH` | Float | 6.5 – 8.5 | Acidity/alkalinity level of water |
+| `turbidity_NTU` | Float | < 1.0 NTU (Max 5.0 NTU) | Cloudiness caused by suspended particles |
+| `TDS_ppm` | Float | < 300 - 500 ppm | Total Dissolved Solids in parts per million |
+| `flow_rate_L_min` | Float | 0.8 – 1.8 L/min | Water flow velocity through purification system |
+| `pressure_bar` | Float | 1.5 – 4.5 bar | System operating pressure |
+| `temperature_C` | Float | 15.0 – 30.0 °C | Water temperature in Celsius |
+| `usage_L_per_day` | Float | 10 – 40 L/day | Daily household/system water consumption |
+| `days_since_filter_change` | Integer | < 90 – 120 days | Operational days since last filter replacement |
 
----
-
-## 🤖 ML Modeling & Serialization
-
-- **Pre-processing**: `StandardScaler` applied across all 8 numeric features.
-- **Trained Model**: `DecisionTreeClassifier` (tuned via 5-Fold `GridSearchCV`).
-- **Artifacts**:
-  - `model.pkl`: Pickle file containing trained classification model.
-  - `scaler.pkl`: Pickle file containing trained scaler.
+### 2. Output Targets
+| Target Name | Values | Description |
+|---|---|---|
+| `water_quality` | `0` (Safe), `1` (Moderate), `2` (Unsafe) | Primary classification target for water quality status |
+| `filter_replacement` | `0` (No), `1` (Yes) | Auxiliary indicator for filter change requirement |
+| `maintenance_required` | `0` (No), `1` (Yes) | Auxiliary indicator for system maintenance alert |
 
 ---
 
-## 🚀 Execution & Command Reference
+## 🤖 Machine Learning Pipeline (`model_training.py`)
 
-| Action | Command |
-|---|---|
-| Train & Save Model | `python model_training.py` |
-| Launch Streamlit Dashboard | `streamlit run app.py` |
-| Launch Gradio Dashboard | `python gradio_app.py` |
-| Install Dependencies | `pip install -r requirements.txt` |
+1. **Preprocessing & Feature Engineering**:
+   - Features (`X`): `pH`, `turbidity_NTU`, `TDS_ppm`, `flow_rate_L_min`, `pressure_bar`, `temperature_C`, `usage_L_per_day`, `days_since_filter_change`
+   - Target (`y`): `water_quality`
+   - Scaling: `StandardScaler` applied to ensure zero mean and unit variance.
+
+2. **Model Evaluation & Selection**:
+   - Logistic Regression
+   - Decision Tree Classifier
+   - Random Forest Classifier (Optimized)
+   - AdaBoost & Gradient Boosting Classifiers
+
+3. **Hyperparameter Optimization & Validation**:
+   - `GridSearchCV` cross-validation (5-fold)
+   - Performance metrics evaluated: Accuracy, Precision, Recall, F1-Score, and Confusion Matrix.
+
+4. **Model Export**:
+   - Best performing classifier serialized to `model.pkl`.
+   - Scaler instance serialized to `scaler.pkl`.
 
 ---
 
-## 👤 Author Information
-- **Developer**: Janvi Thakre
-- **Domain**: Data Science & Machine Learning / Smart IoT Applications
+## 🖥️ User Interface Applications
+
+### 1. Streamlit Dashboard (`app.py`)
+- Sidebar navigation between:
+  - **Prediction**: Interactive sliders, safety indicators, parameter threshold evaluation.
+  - **Graphs**: Distribution plots, scatter plots, correlation heatmaps.
+  - **Model Performance**: Confusion matrix, feature importance rankings, test metrics.
+
+### 2. Gradio Interactive Dashboard (`gradio_app.py`)
+- Multi-tab Gradio UI featuring:
+  - **Single Prediction**: Live sliders with immediate color-coded result & recommendation cards.
+  - **Batch Prediction**: CSV dataset upload & batch inference with downloadable CSV output.
+  - **Analytics & Visualizations**: Interactive feature analysis and distribution charts.
+  - **Water Safety Benchmarks**: WHO & EPA guideline lookup.
+
+---
+
+## 👩‍💻 Author & Maintainer
+- **Janvi Thakre**
+- Student, Data Science and Analytics, Ramdeobaba University

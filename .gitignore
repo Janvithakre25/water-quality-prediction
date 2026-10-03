@@ -1,0 +1,15 @@
+# Python cache & compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Data outputs & temporary files
+batch_predictions_output.csv
+*.log
+
+# Environment & IDE
+.venv/
+env/
+venv/
+.vscode/
+.idea/
