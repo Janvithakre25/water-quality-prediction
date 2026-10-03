@@ -1,15 +1,3 @@
----
-title: Smart Water Quality Prediction
-emoji: 💧
-colorFrom: blue
-colorTo: cyan
-sdk: gradio
-sdk_version: 6.29.1
-app_file: app.py
-pinned: false
-license: mit
-short_description: ML-based water safety classifier using IoT sensor readings
----
 
 # Smart Water Quality Prediction & Monitoring System
 
