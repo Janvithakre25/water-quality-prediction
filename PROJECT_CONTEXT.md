@@ -10,7 +10,7 @@ The **Smart Water Quality Prediction System** is an end-to-end machine learning 
 
 The system comprises:
 - A modular Python ML pipeline (`src/`)
-- A trained Random Forest classifier (`models/model.pkl`)
+- A trained Decision Tree classifier (`models/model.pkl`)
 - An interactive Gradio dashboard with single prediction, batch CSV processing, model metrics, and dataset exploration (`dashboard/app.py`)
 - A secondary Streamlit web application (`app.py`)
 
@@ -25,13 +25,13 @@ water-quality-prediction/
 |   +-- water_purification_dataset.csv   # 1,200 sensor readings (calibrated with noise)
 |
 +-- models/
-|   +-- model.pkl                        # Trained RandomForestClassifier (saved via pickle)
+|   +-- model.pkl                        # Trained DecisionTreeClassifier (saved via pickle)
 |   +-- scaler.pkl                       # Fitted StandardScaler (saved via pickle)
 |
 +-- src/
 |   +-- __init__.py
 |   +-- preprocessing.py                 # FEATURE_COLS, load_data, split_and_scale_data, save/load scaler
-|   +-- train.py                         # train_and_save_model() — full training + evaluation pipeline
+|   +-- train.py                         # train_and_save_model() — model comparison, tuning + evaluation pipeline
 |   +-- predict.py                       # predict_single_sample(), predict_batch_df(), load_trained_model()
 |   +-- evaluation.py                    # evaluate_model_performance() — accuracy, precision, recall, F1, CM
 |
@@ -112,8 +112,6 @@ Reproducible physical sensor measurement noise was applied (`numpy.random.seed(4
 
 The calibrated dataset is saved to both `data/water_purification_dataset.csv` and the project root `water_purification_dataset.csv`.
 
-Result: Accuracy dropped from ~99.58% to **94.17%**.
-
 ---
 
 ## 6. Preprocessing Pipeline
@@ -136,7 +134,7 @@ Defined in `src/preprocessing.py`.
 
 ---
 
-## 7. Model Training Pipeline
+## 7. Model Comparison & Hyperparameter Tuning Pipeline
 
 Defined in `src/train.py`. Entry point: `model_training.py`.
 
@@ -144,23 +142,36 @@ Defined in `src/train.py`. Entry point: `model_training.py`.
 python model_training.py
 ```
 
-**Algorithm:** `RandomForestClassifier`
+### Baseline Model Comparison Results
+
+| Model | Baseline Test Accuracy |
+|---|---|
+| Logistic Regression | 70.42% |
+| **Decision Tree (Baseline)** | **95.42%** |
+| Random Forest | 94.17% |
+| AdaBoost | 88.75% |
+
+Decision Tree is selected as the optimal baseline model.
+
+### Hyperparameter Tuning
+
+Selected Algorithm: `DecisionTreeClassifier`
 
 | Hyperparameter | Value | Reason |
 |---|---|---|
-| `n_estimators` | 100 | Stable ensemble without excessive computation |
-| `max_depth` | 10 | Limits overfitting on noisy calibrated data |
-| `min_samples_split` | 4 | Prevents overly fine splits on small leaf nodes |
-| `random_state` | 42 | Full reproducibility |
+| `max_depth` | `None` | Allows full depth expansion |
+| `min_samples_leaf` | `4` | Prevents overfitting on noisy leaf splits |
+| `min_samples_split` | `10` | Requires minimum samples for branch splitting |
+| `random_state` | `42` | Full reproducibility |
 
 **Training flow:**
 1. Load data → extract features → split → scale → fit scaler
-2. Fit `RandomForestClassifier` on `X_train` (raw DataFrame, not scaled — RF does not require scaling)
-3. Evaluate on `X_test` using `evaluate_model_performance()`
-4. Save model to `models/model.pkl` and root `model.pkl`
-5. Save scaler to `models/scaler.pkl` and root `scaler.pkl`
-
-**Note:** The model is trained on the raw (unscaled) DataFrame to preserve sklearn feature names and avoid `UserWarning` during inference.
+2. Compare candidate baseline models on test split
+3. Perform hyperparameter tuning on the Decision Tree model
+4. Fit tuned `DecisionTreeClassifier` on `X_train`
+5. Evaluate on `X_test` using `evaluate_model_performance()`
+6. Save model to `models/model.pkl` and root `model.pkl`
+7. Save scaler to `models/scaler.pkl` and root `scaler.pkl`
 
 ---
 
@@ -209,24 +220,24 @@ Evaluated on **240 unseen test samples** (stratified 20% split). No data leakage
 
 | Metric | Value |
 |---|---|
-| Accuracy | **94.17%** (226 / 240 correct) |
-| Weighted Precision | **0.9436** |
-| Weighted Recall | **0.9417** |
-| Weighted F1-Score | **0.9412** |
+| Accuracy | **97.08%** (233 / 240 correct) |
+| Weighted Precision | **0.9711** |
+| Weighted Recall | **0.9708** |
+| Weighted F1-Score | **0.9708** |
 
 **Per-class breakdown:**
 
 | Class | Precision | Recall | F1-Score | Support |
 |---|---|---|---|---|
-| Safe (0) | 0.96 | 0.82 | 0.89 | 33 |
-| Moderate (1) | 0.91 | 0.97 | 0.94 | 117 |
+| Safe (0) | 1.00 | 1.00 | 1.00 | 33 |
+| Moderate (1) | 0.96 | 0.98 | 0.97 | 117 |
 | Unsafe (2) | 0.98 | 0.94 | 0.96 | 90 |
 
 **Confusion Matrix:**
 ```
               Predicted Safe   Predicted Moderate   Predicted Unsafe
-Actual Safe        27                 6                   0
-Actual Moderate     1               114                   2
+Actual Safe        33                 0                   0
+Actual Moderate     0               115                   2
 Actual Unsafe       0                 5                  85
 ```
 

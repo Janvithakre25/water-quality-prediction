@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 
-from src.preprocessing import FEATURE_COLS, load_data, load_scaler
+from src.preprocessing import FEATURE_COLS, load_data, load_scaler, split_and_scale_data
 from src.predict import predict_single_sample, load_trained_model, LABEL_MAP
 from src.evaluation import evaluate_model_performance
 
@@ -81,23 +81,24 @@ elif menu == "📊 Dataset Analytics":
         st.error("Dataset file not available.")
 
 elif menu == "📈 Model Metrics":
-    st.header("📈 Model Evaluation Results")
+    st.header("📈 Model Evaluation Results (Tuned Decision Tree)")
     st.markdown(
         """
-        - **Accuracy**: **94.17%**
-        - **Precision**: **0.9436**
-        - **Recall**: **0.9417**
-        - **F1-Score**: **0.9412**
+        - **Accuracy**: **97.08%**
+        - **Precision**: **0.9711**
+        - **Recall**: **0.9708**
+        - **F1-Score**: **0.9708**
         """
     )
     if df is not None:
         X = df[FEATURE_COLS]
         y = df["water_quality"]
-        metrics = evaluate_model_performance(model, X, y)
+        _, X_test, _, _, _, y_test, _ = split_and_scale_data(X, y)
+        metrics = evaluate_model_performance(model, X_test, y_test)
 
         fig, ax = plt.subplots(figsize=(5, 4))
         sns.heatmap(metrics["confusion_matrix"], annot=True, fmt='d', cmap='Blues',
                     xticklabels=["Safe", "Moderate", "Unsafe"],
                     yticklabels=["Safe", "Moderate", "Unsafe"], ax=ax)
-        ax.set_title("Confusion Matrix")
+        ax.set_title("Confusion Matrix (240 Test Samples)")
         st.pyplot(fig)

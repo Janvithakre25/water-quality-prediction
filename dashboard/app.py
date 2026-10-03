@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import gradio as gr
 
-from src.preprocessing import FEATURE_COLS, load_data, load_scaler
+from src.preprocessing import FEATURE_COLS, load_data, load_scaler, split_and_scale_data
 from src.predict import predict_single_sample, predict_batch_df, load_trained_model, LABEL_MAP
 from src.evaluation import evaluate_model_performance
 
@@ -147,7 +147,8 @@ def render_evaluation_plots():
 
     X = df_dataset[FEATURE_COLS]
     y = df_dataset["water_quality"]
-    metrics = evaluate_model_performance(model, X, y)
+    _, X_test, _, _, _, y_test, _ = split_and_scale_data(X, y)
+    metrics = evaluate_model_performance(model, X_test, y_test)
 
     # Plot 1: Confusion Matrix
     fig_cm, ax_cm = plt.subplots(figsize=(6, 4.5), dpi=100)
@@ -168,7 +169,7 @@ def render_evaluation_plots():
         sorted_imps = importances[indices]
         
         sns.barplot(x=sorted_imps, y=sorted_feats, palette="crest", ax=ax_imp)
-        ax_imp.set_title("Random Forest Relative Feature Importance", fontsize=12, fontweight="bold", pad=12)
+        ax_imp.set_title("Decision Tree Relative Feature Importance", fontsize=12, fontweight="bold", pad=12)
         ax_imp.set_xlabel("Importance Score", fontsize=10, fontweight="bold")
     plt.tight_layout()
 
@@ -216,7 +217,7 @@ def create_gradio_dashboard():
     .kpi-label { font-size: 13px; color: #9CA3AF; }
     """
 
-    with gr.Blocks(css=css, title="Smart Water Quality Prediction System") as demo:
+    with gr.Blocks(title="Smart Water Quality Prediction System") as demo:
         gr.HTML(
             """
             <div class="main-title">💧 Smart Water Quality Prediction & Monitoring Dashboard</div>
@@ -292,25 +293,25 @@ def create_gradio_dashboard():
 
             # TAB 3: Model Performance Metrics
             with gr.TabItem("📈 Model Evaluation & KPI Metrics"):
-                gr.Markdown("### Empirical Model Validation Metrics (Random Forest Classifier)")
+                gr.Markdown("### Empirical Model Validation Metrics (Tuned Decision Tree Classifier)")
                 
                 gr.HTML(
                     """
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
                         <div class="kpi-card" style="flex: 1;">
-                            <div class="kpi-val">94.17%</div>
+                            <div class="kpi-val">97.08%</div>
                             <div class="kpi-label">Test Accuracy</div>
                         </div>
                         <div class="kpi-card" style="flex: 1;">
-                            <div class="kpi-val">94.36%</div>
+                            <div class="kpi-val">97.11%</div>
                             <div class="kpi-label">Weighted Precision</div>
                         </div>
                         <div class="kpi-card" style="flex: 1;">
-                            <div class="kpi-val">94.17%</div>
+                            <div class="kpi-val">97.08%</div>
                             <div class="kpi-label">Weighted Recall</div>
                         </div>
                         <div class="kpi-card" style="flex: 1;">
-                            <div class="kpi-val">94.12%</div>
+                            <div class="kpi-val">97.08%</div>
                             <div class="kpi-label">Weighted F1-Score</div>
                         </div>
                     </div>

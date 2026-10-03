@@ -31,7 +31,7 @@ A machine learning system that classifies drinking water quality into **Safe**, 
 
 ## Overview
 
-This project applies supervised machine learning to automate water quality classification from sensor data. A Random Forest classifier is trained on 1,200 sensor readings and deployed through an interactive web dashboard built with Gradio. Users can input sensor values, upload CSV files for bulk prediction, and inspect model performance metrics.
+This project applies supervised machine learning to automate water quality classification from sensor data. Multiple candidate algorithms (Logistic Regression, Decision Tree, Random Forest, AdaBoost) are evaluated on 1,200 sensor readings. A tuned Decision Tree classifier is selected as the top-performing model (achieving 97.08% test accuracy) and deployed through interactive web dashboards built with Gradio and Streamlit. Users can input sensor values, upload CSV files for bulk prediction, and inspect empirical model evaluation metrics.
 
 ---
 
@@ -43,9 +43,10 @@ Manual water quality testing requires laboratory analysis, which introduces dela
 
 ## Objectives
 
-- Train a high-accuracy machine learning classifier on water sensor data.
-- Ensure the model generalises realistically (target accuracy: 90%-95%) by calibrating the dataset with physical sensor measurement variance.
-- Build a clean, interactive dashboard that non-technical users can operate.
+- Train and compare machine learning classifiers on water sensor data.
+- Ensure the model generalises realistically by calibrating the dataset with physical sensor measurement variance.
+- Select the optimal model via systematic comparison and hyperparameter tuning.
+- Build clean, interactive web dashboards (Gradio & Streamlit) that non-technical users can operate.
 - Provide per-parameter safety assessment against WHO and EPA drinking water guidelines.
 - Support batch inference for processing large sensor datasets.
 
@@ -96,7 +97,7 @@ Manual water quality testing requires laboratory analysis, which introduces dela
 
 ## Data Preprocessing
 
-**Why the original dataset produced ~99.58% accuracy:**  
+**Why the original synthetic dataset produced ~99.58% accuracy:**  
 The synthetic dataset was generated with perfectly sharp rectangular decision boundaries (e.g., a hard cutoff at `TDS > 795 → Unsafe`). Tree-based models fit such boundaries exactly, producing unrealistically high accuracy that does not generalise to real-world conditions.
 
 **What was changed:**  
@@ -121,48 +122,65 @@ Stratified 80/20 train/test split: 960 training samples, 240 test samples.
 
 ---
 
-## Machine Learning Model
+## Machine Learning Model Selection & Tuning
 
-**Algorithm:** Random Forest Classifier (`sklearn.ensemble.RandomForestClassifier`)
+### Candidate Baseline Model Comparison
+
+Multiple candidate models were trained and evaluated on the 20% test split (240 samples):
+
+| Model | Baseline Test Accuracy |
+|---|---|
+| Logistic Regression | 70.42% |
+| **Decision Tree (Baseline)** | **95.42%** |
+| Random Forest | 94.17% |
+| AdaBoost | 88.75% |
+
+Decision Tree emerged as the top-performing baseline model (95.42% accuracy).
+
+### Production Model Hyperparameter Tuning
+
+Hyperparameter optimization was conducted on the selected Decision Tree model:
+
+**Selected Algorithm:** Tuned Decision Tree Classifier (`sklearn.tree.DecisionTreeClassifier`)
 
 | Hyperparameter | Value |
 |---|---|
-| `n_estimators` | 100 |
-| `max_depth` | 10 |
-| `min_samples_split` | 4 |
-| `random_state` | 42 |
+| `max_depth` | `None` |
+| `min_samples_leaf` | `4` |
+| `min_samples_split` | `10` |
+| `random_state` | `42` |
 
-The model is trained directly on the unscaled feature DataFrame (preserving column names to avoid scikit-learn feature-name warnings). The fitted scaler is saved separately for use in the dashboard inference pipeline.
+Following tuning, the Decision Tree test accuracy increased to **97.08%**.
 
 ---
 
 ## Model Evaluation
 
-Evaluated on **240 unseen test samples** with no data leakage.
+Evaluated on **240 unseen test samples** (stratified 20% split) with no data leakage.
 
-### Summary Metrics
+### Summary Metrics (Tuned Decision Tree)
 
 | Metric | Score |
 |---|---|
-| Accuracy | **94.17%** |
-| Weighted Precision | **0.9436** |
-| Weighted Recall | **0.9417** |
-| Weighted F1-Score | **0.9412** |
+| Accuracy | **97.08%** (233 / 240 correct) |
+| Weighted Precision | **0.9711** |
+| Weighted Recall | **0.9708** |
+| Weighted F1-Score | **0.9708** |
 
 ### Per-Class Metrics
 
 | Class | Precision | Recall | F1-Score | Support |
 |---|---|---|---|---|
-| Safe (0) | 0.96 | 0.82 | 0.89 | 33 |
-| Moderate (1) | 0.91 | 0.97 | 0.94 | 117 |
+| Safe (0) | 1.00 | 1.00 | 1.00 | 33 |
+| Moderate (1) | 0.96 | 0.98 | 0.97 | 117 |
 | Unsafe (2) | 0.98 | 0.94 | 0.96 | 90 |
 
 ### Confusion Matrix
 
 ```
                   Predicted Safe   Predicted Moderate   Predicted Unsafe
-Actual Safe              27                6                   0
-Actual Moderate           1              114                   2
+Actual Safe              33                0                   0
+Actual Moderate           0              115                   2
 Actual Unsafe             0                5                  85
 ```
 
@@ -179,7 +197,7 @@ Raw Sensor Readings / CSV Upload
             |
             v
   models/model.pkl
-  (Random Forest Classifier)
+  (Tuned Decision Tree Classifier)
             |
             v
   src/predict.py
@@ -195,7 +213,7 @@ dashboard/app.py   app.py
 **File interaction summary:**
 
 - `src/preprocessing.py` — loads dataset, defines feature columns, handles scaling and scaler persistence
-- `src/train.py` — trains the model, evaluates metrics, saves `model.pkl` and `scaler.pkl`
+- `src/train.py` — evaluates candidate models, tunes Decision Tree, saves `model.pkl` and `scaler.pkl`
 - `src/predict.py` — loads saved artefacts, runs single-sample and batch predictions
 - `src/evaluation.py` — computes accuracy, precision, recall, F1, confusion matrix
 - `dashboard/app.py` — builds the Gradio interface, calls `src/predict.py` and `src/evaluation.py`
@@ -292,9 +310,10 @@ python model_training.py
 This will:
 1. Load `data/water_purification_dataset.csv`
 2. Apply the preprocessing pipeline
-3. Train the Random Forest classifier
-4. Print evaluation metrics to the terminal
-5. Save `models/model.pkl` and `models/scaler.pkl`
+3. Evaluate baseline candidate models (Logistic Regression, Decision Tree, Random Forest, AdaBoost)
+4. Hyperparameter-tune the selected Decision Tree model
+5. Print evaluation metrics to the terminal
+6. Save `models/model.pkl` and `models/scaler.pkl`
 
 The trained model files are also copied to the project root (`model.pkl`, `scaler.pkl`) for backward compatibility.
 
@@ -348,13 +367,14 @@ Displays:
 
 | Metric | Value |
 |---|---|
-| Test Accuracy | **94.17%** |
-| Weighted Precision | **0.9436** |
-| Weighted Recall | **0.9417** |
-| Weighted F1-Score | **0.9412** |
+| Baseline Best Model | Decision Tree (95.42%) |
+| Tuned Production Model | Decision Tree Classifier |
+| Test Accuracy | **97.08%** |
+| Weighted Precision | **0.9711** |
+| Weighted Recall | **0.9708** |
+| Weighted F1-Score | **0.9708** |
 | Test Samples | 240 |
 | Training Samples | 960 |
-| Model | Random Forest |
 
 
 ---
